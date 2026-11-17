@@ -1,9 +1,6 @@
-import type { PluginClientContext } from "@getpaseo/plugin/client";
 import { Icon } from "@getpaseo/plugin/client/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
-  createContext,
-  useContext,
   useMemo,
   useRef,
   useState,
@@ -27,21 +24,6 @@ import {
   saveOpen,
   savePosition,
 } from "./web";
-
-/**
- * The floating layer is its own React root, outside Paseo's providers, so plugin hooks such as
- * usePaseo() and useRpc() are unavailable inside it. Components here use useFloatingClient().
- */
-const ClientContext = createContext<PluginClientContext | null>(null);
-
-export function useFloatingClient(): PluginClientContext {
-  const client = useContext(ClientContext);
-  if (!client)
-    throw new Error(
-      "useFloatingClient() must be used inside the floating panel",
-    );
-  return client;
-}
 
 // react-native-web accepts these CSS properties; React Native's types do not list them.
 const webStyle = (style: Record<string, string>) => style as ViewStyle;
@@ -235,15 +217,14 @@ function Content() {
   );
 }
 
-export function FloatingRoot({ client }: { client: PluginClientContext }) {
+/** Its own React root, outside Paseo's providers: plugin hooks such as usePaseo() are unavailable here. */
+export function FloatingRoot() {
   const queryClient = useMemo(() => new QueryClient(), []);
   return (
-    <ClientContext.Provider value={client}>
-      <QueryClientProvider client={queryClient}>
-        <View pointerEvents="box-none" style={{ flex: 1 }}>
-          <Content />
-        </View>
-      </QueryClientProvider>
-    </ClientContext.Provider>
+    <QueryClientProvider client={queryClient}>
+      <View pointerEvents="box-none" style={{ flex: 1 }}>
+        <Content />
+      </View>
+    </QueryClientProvider>
   );
 }

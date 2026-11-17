@@ -1,6 +1,7 @@
 import { getPaseoClient, useHosts } from "@getpaseo/plugin/client";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
+import { useInstalledHosts } from "./hosts";
 import { type Palette, usePalette } from "./palette";
 import { openAgentRoute } from "./web";
 
@@ -62,12 +63,15 @@ const tint = (bucket: Bucket, colors: Palette) =>
 const baseName = (cwd: string) => cwd.split("/").filter(Boolean).at(-1) ?? cwd;
 
 /**
- * Live agents of every connected host, not just the plugin's own: a client can be connected to several
+ * Live agents of every online host where this plugin is installed, not just the bundle's own: a client can be connected to several
  * daemons, and each row must navigate and answer on the host that owns it. Subscriptions re-snapshot
  * after a reconnect.
  */
 export function useAgentBoard(): BoardItem[] {
-  const hosts = useHosts().filter((host) => host.status === "online");
+  const installed = useInstalledHosts();
+  const hosts = useHosts().filter(
+    (host) => host.status === "online" && installed.has(host.serverId),
+  );
   const hostKey = hosts
     .map((host) => `${host.serverId}\t${host.label}`)
     .join("\n");
