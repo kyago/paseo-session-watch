@@ -2,7 +2,7 @@ import { type PluginSidebarItemProps, useTranslation } from "@getpaseo/plugin/cl
 import { SidebarRow } from "@getpaseo/plugin/client/ui";
 import { useEffect, useRef } from "react";
 import { Text, View } from "react-native";
-import { hoverIn, hoverOut, setPopover, togglePinned, usePopover } from "./popover";
+import { hoverIn, hoverOut, setPopover, setRow, togglePinned, usePopover } from "./popover";
 import { hoverProps } from "./web";
 import { text } from "./text";
 
@@ -15,7 +15,13 @@ export function SessionsItem({ theme }: PluginSidebarItemProps) {
     ref.current?.measureInWindow((x, y, width, height) =>
       setPopover({ anchor: { x, y, width, height } }),
     );
-  useEffect(() => () => setPopover({ anchor: null, hover: false }), []);
+  useEffect(() => {
+    setRow(ref.current);
+    return () => {
+      setRow(null);
+      setPopover({ anchor: null, hover: false });
+    };
+  }, []);
   return (
     <View
       ref={ref}

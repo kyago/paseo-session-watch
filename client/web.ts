@@ -6,12 +6,19 @@ interface OverlayElement {
   style: { cssText: string };
   remove(): void;
 }
+interface Node {
+  contains(other: unknown): boolean;
+  getBoundingClientRect(): { left: number; top: number; width: number; height: number };
+}
 declare const document: {
+  elementFromPoint(x: number, y: number): unknown;
   getElementById(id: string): OverlayElement | null;
   createElement(tag: "div"): OverlayElement;
   body: { appendChild(element: OverlayElement): void };
 };
 declare const window: {
+  addEventListener(type: "mousemove", listener: (event: { target: unknown }) => void): void;
+  removeEventListener(type: "mousemove", listener: (event: { target: unknown }) => void): void;
   history: { pushState(state: null, unused: string, url: string): void };
   dispatchEvent(event: unknown): void;
 };
@@ -75,3 +82,37 @@ export function savePinned(pinned: boolean): void {
  */
 export const hoverProps = (onEnter: () => void, onLeave: () => void): object =>
   Platform.OS === "web" ? { onMouseEnter: onEnter, onMouseLeave: onLeave } : {};
+
+export interface PointerReport {
+  /** The row's rectangle, or null when it is not actually on screen (unmounted, hidden, or covered by another page). */
+  row: { x: number; y: number; width: number; height: number } | null;
+  /** The pointer is over the row or the panel. */
+  inside: boolean;
+}
+
+/**
+ * Reports on every mouse move where the pointer is and whether the sidebar row is really visible.
+ * mouseleave alone is not enough: it never fires when the row is hidden or covered under the pointer,
+ * e.g. when Paseo navigates to Settings, which would leave the list open.
+ */
+export function trackPointer(
+  row: () => unknown,
+  panel: () => unknown,
+  report: (state: PointerReport) => void,
+): () => void {
+  if (Platform.OS !== "web") return () => {};
+  const listener = ({ target }: { target: unknown }) => {
+    const rowEl = row() as Node | null;
+    const panelEl = panel() as Node | null;
+    const rect = rowEl?.getBoundingClientRect();
+    const onScreen =
+      !!rowEl && !!rect && rect.width > 0 &&
+      rowEl.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2));
+    report({
+      row: onScreen && rect ? { x: rect.left, y: rect.top, width: rect.width, height: rect.height } : null,
+      inside: (onScreen && rowEl!.contains(target)) || !!panelEl?.contains(target),
+    });
+  };
+  window.addEventListener("mousemove", listener);
+  return () => window.removeEventListener("mousemove", listener);
+}

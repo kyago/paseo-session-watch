@@ -1,10 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import { AgentBoard, type BoardItem, PermissionRow, useAgentBoard } from "./agents";
 import { usePalette } from "./palette";
-import { hoverIn, hoverOut, setPopover, togglePinned, usePopover } from "./popover";
-import { hoverProps, openAgentRoute } from "./web";
+import { getRow, hoverIn, hoverOut, setPopover, togglePinned, usePopover } from "./popover";
+import { hoverProps, openAgentRoute, trackPointer } from "./web";
 import { t } from "./text";
 
 const PANEL = { width: 360, height: 480 };
@@ -28,10 +28,22 @@ function SessionPopover({ items }: { items: BoardItem[] }) {
   const { height } = useWindowDimensions();
   const colors = usePalette();
   const { anchor, hover, pinned } = usePopover();
-  if (!anchor || !(hover || pinned)) return null;
+  const panel = useRef<View>(null);
+  const tracking = hover || pinned;
+  useEffect(() => {
+    if (!tracking) return;
+    return trackPointer(getRow, () => panel.current, ({ row, inside }) => {
+      // A row that is no longer on screen takes the list with it; it comes back with the row when pinned.
+      setPopover({ anchor: row });
+      if (inside) hoverIn();
+      else hoverOut();
+    });
+  }, [tracking]);
+  if (!anchor || !tracking) return null;
   const panelHeight = Math.min(PANEL.height, height - GAP * 2);
   return (
     <View
+      ref={panel}
       {...hoverProps(hoverIn, hoverOut)}
       style={[
         card(colors),

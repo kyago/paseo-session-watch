@@ -24,6 +24,8 @@ interface Shared {
   state: State;
   listeners: Set<() => void>;
   timer?: ReturnType<typeof setTimeout>;
+  /** The sidebar row's DOM node, for the overlay's pointer tracking. */
+  row?: unknown;
 }
 const KEY = "__paseoSessionWatchPopover";
 const g = globalThis as { [KEY]?: Shared };
@@ -39,15 +41,24 @@ export function setPopover(patch: Partial<State>): void {
   for (const listener of shared.listeners) listener();
 }
 
+export const setRow = (row: unknown): void => {
+  shared.row = row;
+};
+export const getRow = (): unknown => shared.row;
+
 export function hoverIn(): void {
   clearTimeout(shared.timer);
+  shared.timer = undefined;
   setPopover({ hover: true });
 }
 
 /** Closes after a short grace, so the pointer can cross the gap between the row and the list. */
 export function hoverOut(): void {
-  clearTimeout(shared.timer);
-  shared.timer = setTimeout(() => setPopover({ hover: false }), 250);
+  // Called on every mouse move outside; a pending close must not be pushed back.
+  shared.timer ??= setTimeout(() => {
+    shared.timer = undefined;
+    setPopover({ hover: false });
+  }, 250);
 }
 
 export function togglePinned(): void {
