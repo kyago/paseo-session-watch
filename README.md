@@ -1,16 +1,39 @@
 # paseo-floating-panel
 
-PC(웹 기반 데스크톱 앱)에서 Paseo 창 위에 떠 있는 플로팅 버튼/패널. 모바일·768px 미만 창에서는 표시하지 않는다.
+A [Paseo](https://paseo.sh) plugin for the desktop app that keeps sessions waiting on you in view.
 
-- 접힘: 오른쪽 아래 원형 버튼. 클릭하면 패널(360×480)로 펼쳐짐, 헤더의 `—`로 다시 접힘. 펼침/접힘 상태는 localStorage에 저장돼 세션 이동·재시작 후에도 유지
-- 드래그: 버튼 또는 패널 헤더를 끌어 위치 이동, 위치는 localStorage에 저장
-- 에이전트 현황판: 앱에 연결된 모든 온라인 호스트의 보관되지 않은 에이전트를 상태별(응답 필요 → 오류 → 실행 중 → 완료(확인 전))로 표시. 행을 누르면 그 에이전트의 호스트·워크스페이스 탭으로 이동, 권한 요청은 패널에서 바로 허용·거부(명령 실행 요청은 `$ 명령어`를 한 줄로 표시, 넘치면 …; 질문형은 세션에서 답함). 완료된 세션은 접어 두고 개수만 표시. 접힌 버튼에는 응답 필요+오류 개수 배지
-- 사이드바와 무관: `document.body`에 별도 레이어를 만들고 `AppRegistry.runApplication`으로 독립 React 루트를 띄움
+- **Approval cards.** When an agent asks for permission, a card appears at the top right of the window and stays until the request is answered or you open the session from the card. It shows the session title, the request (a shell command is shown as one `$ command` line) and the request's own actions, or allow and deny when it has none. Questions have no buttons and are answered in the session; clicking the card title opens it. At most three cards are shown, with a count for the rest.
+- **Session list.** A row in the sidebar header shows how many sessions are running and how many need input. Hovering it shows the list beside the row; clicking the row, or the pin control in the list header, keeps the list open. Sessions are ordered by your most recent message, newest first, and labelled needs input, failed, running, or finished but unread. Finished sessions are folded away behind a count. Selecting a session opens it.
 
-## 컴포넌트 추가 시 주의
+Both cover every online host that has this plugin installed. A host without the plugin is left out, so install it on each daemon you want included. Nothing is shown on mobile or in windows narrower than 768 pixels. The interface is in English or Korean, following the app language.
 
-패널은 Paseo의 플러그인 화면 밖에 있는 별도 루트라 `usePaseo()`·`useRpc()`·`useSettings()`가 동작하지 않는다(`usePaseo must run inside a contributed plugin surface`).
-대신 `useFloatingClient()`로 `paseo`, `rpc`, `openScreen`, `openPanel`을 쓴다. TanStack Query는 패널 자체 `QueryClient`로 동작한다.
-`theme` prop도 없어서 색은 Paseo가 `:root`에 올리는 테마 CSS 변수(`--colors-*`)를 쓴다(`client/palette.ts`). 새 색이 필요하면 `palettes`에 `var(--colors-<키>, <대체 hex>)`로 추가한다.
+## Install
 
-새 컴포넌트는 `client/floating.tsx`의 `Content`에서 `FloatingPanel` 자식으로 넣는다. 세션 이동은 `client/web.ts`의 `openAgentRoute`(Paseo 라우트 `/h/<server>/workspace/<id>?open=agent:<id>`로 pushState). 호스트별 Paseo 호출은 `getPaseoClient(serverId)`.
+```bash
+paseo plugin install github:kyago/paseo-floating-panel
+```
+
+Requires Paseo 0.16.0 or later. Plugins are trusted, unsandboxed code; read the source before installing.
+
+## What it stores and sends
+
+- The pinned state of the session list is kept in the app's `localStorage`.
+- The daemon side has one RPC, which returns the daemon's server id from `PASEO_HOME/server-id` so the app can tell hosts apart.
+- Nothing is sent outside Paseo.
+
+## Development
+
+```bash
+npm install
+npm run typecheck
+node --experimental-strip-types client/hosts.check.mjs
+paseo plugin install /absolute/path/to/paseo-floating-panel
+paseo plugin reload paseo-floating-panel
+```
+
+How it is put together:
+
+- The cards and the list render in a separate React root on a click-through layer appended to `document.body` (`index.client.tsx`, `client/web.ts`), so they stay visible when the sidebar is collapsed.
+- That root is outside Paseo's plugin surfaces. `usePaseo()`, `useRpc()` and `useSettings()` do not work there, and there is no `theme` prop. Use `getPaseoClient(serverId)` for Paseo calls and the theme CSS variables Paseo puts on `:root` for colors (`client/palette.ts`).
+- Each host with the plugin loads its own client bundle into the same window. The bundles share a registry on `globalThis` so that only one mounts the layer (`client/hosts.ts`). The sidebar row and the layer share a second store for hover, pin and counts (`client/popover.ts`).
+- Sessions open through Paseo's own route, `/h/<server>/workspace/<id>?open=agent:<id>` (`openAgentRoute` in `client/web.ts`).

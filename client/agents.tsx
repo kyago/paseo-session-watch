@@ -4,6 +4,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { useInstalledHosts } from "./hosts";
 import { type Palette, usePalette } from "./palette";
 import { openAgentRoute } from "./web";
+import { t, type TextKey } from "./text";
 
 type PaseoApi = ReturnType<typeof getPaseoClient>;
 type Entry = Awaited<ReturnType<PaseoApi["agents"]["list"]>>["entries"][number];
@@ -44,12 +45,12 @@ function bucketOf(agent: Agent): Bucket {
 /** Sort by the user's last request only (not status or updatedAt), so agent replies don't reshuffle rows under the cursor. */
 const requestedAt = (agent: Agent) => agent.lastUserMessageAt ?? agent.createdAt;
 
-const LABEL: Record<Bucket, string> = {
-  needs_input: "응답 필요",
-  failed: "오류",
-  running: "실행 중",
-  attention: "완료(확인 전)",
-  done: "완료",
+const LABEL: Record<Bucket, TextKey> = {
+  needs_input: "bucketNeedsInput",
+  failed: "bucketFailed",
+  running: "bucketRunning",
+  attention: "bucketAttention",
+  done: "bucketDone",
 };
 const tint = (bucket: Bucket, colors: Palette) =>
   ({
@@ -160,13 +161,13 @@ function ago(iso: string): string {
     0,
     Math.round((Date.now() - Date.parse(iso)) / 60_000),
   );
-  if (minutes < 1) return "방금";
-  if (minutes < 60) return `${minutes}분 전`;
-  if (minutes < 60 * 24) return `${Math.round(minutes / 60)}시간 전`;
-  return `${Math.round(minutes / 60 / 24)}일 전`;
+  if (minutes < 1) return t("now");
+  if (minutes < 60) return t("minutesAgo", { n: minutes });
+  if (minutes < 60 * 24) return t("hoursAgo", { n: Math.round(minutes / 60) });
+  return t("daysAgo", { n: Math.round(minutes / 60 / 24) });
 }
 
-function PermissionRow({
+export function PermissionRow({
   serverId,
   agent,
   permission,
@@ -197,8 +198,8 @@ function PermissionRow({
             danger: action.behavior === "deny",
           }))
         : [
-            { label: "허용", response: { behavior: "allow" } },
-            { label: "거부", response: { behavior: "deny" }, danger: true },
+            { label: t("allow"), response: { behavior: "allow" } },
+            { label: t("deny"), response: { behavior: "deny" }, danger: true },
           ];
   const respond = async (response: PermissionResponse) => {
     setPending(true);
@@ -279,7 +280,7 @@ function PermissionRow({
         </View>
       ) : (
         <Text style={{ color: colors.muted, fontSize: 11 }}>
-          세션에서 답해주세요.
+          {t("answerInSession")}
         </Text>
       )}
       {error ? (
@@ -303,7 +304,7 @@ function AgentRow({ item, showHost }: { item: BoardItem; showHost: boolean }) {
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${agent.title ?? "제목 없음"} 세션 열기`}
+        accessibilityLabel={t("openSession", { title: agent.title ?? t("untitled") })}
         onPress={() => openAgentRoute(serverId, agent.id, agent.workspaceId)}
         style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
       >
@@ -320,11 +321,11 @@ function AgentRow({ item, showHost }: { item: BoardItem; showHost: boolean }) {
             numberOfLines={1}
             style={{ color: colors.foreground, fontSize: 13 }}
           >
-            {agent.title ?? "제목 없음"}
+            {agent.title ?? t("untitled")}
           </Text>
           <Text numberOfLines={1} style={{ color: colors.muted, fontSize: 11 }}>
             {showHost ? `${host} · ` : ""}
-            {project} · {LABEL[bucket]} ·{" "}
+            {project} · {t(LABEL[bucket])} ·{" "}
             {ago(agent.attentionTimestamp ?? agent.updatedAt)}
           </Text>
         </View>
@@ -361,7 +362,7 @@ export function AgentBoard({ items }: { items: BoardItem[] }) {
           ))
         ) : (
           <Text style={{ color: colors.muted, padding: 16 }}>
-            진행 중인 에이전트가 없습니다.
+            {t("empty")}
           </Text>
         )}
       </ScrollView>
@@ -377,7 +378,7 @@ export function AgentBoard({ items }: { items: BoardItem[] }) {
           }}
         >
           <Text style={{ color: colors.muted, fontSize: 12 }}>
-            {showDone ? "완료 숨기기" : `완료 ${done}개 보기`}
+            {showDone ? t("hideDone") : t("showDone", { n: done })}
           </Text>
         </Pressable>
       ) : null}

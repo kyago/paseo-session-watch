@@ -22,13 +22,7 @@ declare const localStorage: {
 };
 
 const ROOT_ID = "paseo-floating-panel-root";
-const POSITION_KEY = "paseo-floating-panel:position";
-const OPEN_KEY = "paseo-floating-panel:open";
-
-export interface Offset {
-  right: number;
-  bottom: number;
-}
+const PINNED_KEY = "paseo-floating-panel:pinned";
 
 /** A click-through layer over the whole window, outside Paseo's layout so the sidebar cannot unmount it. */
 export function createOverlayRoot(): {
@@ -43,23 +37,6 @@ export function createOverlayRoot(): {
     "position:fixed;inset:0;display:flex;flex-direction:column;pointer-events:none;z-index:40;";
   document.body.appendChild(element);
   return { element, remove: () => element.remove() };
-}
-
-export function loadPosition(): Offset | null {
-  if (Platform.OS !== "web") return null;
-  try {
-    const value = JSON.parse(localStorage.getItem(POSITION_KEY) ?? "null");
-    return typeof value?.right === "number" && typeof value?.bottom === "number"
-      ? value
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-export function savePosition(offset: Offset): void {
-  if (Platform.OS === "web")
-    localStorage.setItem(POSITION_KEY, JSON.stringify(offset));
 }
 
 /**
@@ -82,11 +59,19 @@ export function openAgentRoute(
   window.dispatchEvent(new PopStateEvent("popstate"));
 }
 
-/** Open/closed survives remounts: Paseo can restart the plugin's client entry, e.g. while navigating. */
-export function loadOpen(): boolean {
-  return Platform.OS === "web" && localStorage.getItem(OPEN_KEY) === "1";
+/** Pinned survives remounts: Paseo can restart the plugin's client entry, e.g. while navigating. */
+export function loadPinned(): boolean {
+  return Platform.OS === "web" && localStorage.getItem(PINNED_KEY) === "1";
 }
 
-export function saveOpen(open: boolean): void {
-  if (Platform.OS === "web") localStorage.setItem(OPEN_KEY, open ? "1" : "0");
+export function savePinned(pinned: boolean): void {
+  if (Platform.OS === "web") localStorage.setItem(PINNED_KEY, pinned ? "1" : "0");
 }
+
+/**
+ * Hover for a View that contains pressables. Pressable's own onHoverIn/Out cannot be used on a wrapper:
+ * react-native-web lets the innermost pressable claim the hover, which un-hovers its ancestors.
+ * React Native's types do not list the mouse props react-native-web forwards.
+ */
+export const hoverProps = (onEnter: () => void, onLeave: () => void): object =>
+  Platform.OS === "web" ? { onMouseEnter: onEnter, onMouseLeave: onLeave } : {};
