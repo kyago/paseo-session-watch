@@ -1,10 +1,10 @@
 {
-  "id": "paseo-floating-panel",
-  "name": "Floating panel",
+  "id": "session-watch",
+  "name": "Session watch",
   "description": "Approval cards and a session list for agents that are waiting on you.",
   "translations": {
     "ko": {
-      "name": "플로팅 패널",
+      "name": "세션 현황",
       "description": "응답을 기다리는 에이전트의 승인 카드와 세션 목록을 보여준다."
     }
   },

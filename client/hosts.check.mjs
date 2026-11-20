@@ -6,12 +6,12 @@ const inst = (id) => ({ serverId: id, mount: () => (log.push(`mount ${id}`), () 
 const releaseA = registerHost(inst("A"));
 const releaseB = registerHost(inst("B"));
 assert.deepEqual(log, ["mount A"]); // only one overlay
-assert.equal(globalThis.__paseoFloatingPanelHosts2.hostKey, "A\nB");
+assert.equal(globalThis.__paseoSessionWatchHosts.hostKey, "A\nB");
 releaseA();
 assert.deepEqual(log, ["mount A", "unmount A", "mount B"]); // handoff
-assert.equal(globalThis.__paseoFloatingPanelHosts2.hostKey, "B");
+assert.equal(globalThis.__paseoSessionWatchHosts.hostKey, "B");
 releaseA(); // idempotent
 releaseB();
 assert.deepEqual(log.at(-1), "unmount B");
-assert.equal(globalThis.__paseoFloatingPanelHosts2.hostKey, "");
+assert.equal(globalThis.__paseoSessionWatchHosts.hostKey, "");
 console.log("ok");

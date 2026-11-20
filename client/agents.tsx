@@ -132,7 +132,7 @@ export function useAgentBoard(): BoardItem[] {
         .catch((error) => {
           if (!lifetime.signal.aborted)
             console.error(
-              `[floating-panel] agent list failed on ${host}`,
+              `[session-watch] agent list failed on ${host}`,
               error,
             );
         });

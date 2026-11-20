@@ -1,4 +1,4 @@
-Floating panel keeps sessions that wait on you in view on the Paseo desktop window.
+Session watch keeps sessions that wait on you in view on the Paseo desktop window.
 
 When an agent asks for permission, a card appears at the top right and stays until it is answered or you open the session from the card. The card shows the session title and the request, with buttons to allow or deny. Questions are answered in the session, which opens when you click the card title. Up to three cards are shown, with a count for the rest.
 

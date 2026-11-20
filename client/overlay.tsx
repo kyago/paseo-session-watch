@@ -152,7 +152,7 @@ function Content() {
 }
 
 /** Its own React root, outside Paseo's providers: plugin hooks such as usePaseo() are unavailable here. */
-export function FloatingRoot() {
+export function OverlayRoot() {
   const queryClient = useMemo(() => new QueryClient(), []);
   return (
     <QueryClientProvider client={queryClient}>

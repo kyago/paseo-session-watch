@@ -15,8 +15,7 @@ interface Shared {
   hostKey: string;
   listeners: Set<() => void>;
 }
-// Renamed once (…Hosts → …Hosts2) to abandon registries that an older build left with dead leaders.
-const KEY = "__paseoFloatingPanelHosts2";
+const KEY = "__paseoSessionWatchHosts";
 const g = globalThis as { [KEY]?: Shared };
 const shared = (g[KEY] ??= { instances: [], hostKey: "", listeners: new Set() });
 
@@ -33,7 +32,7 @@ function sync() {
     shared.active?.unmount();
   } catch (error) {
     // A failed teardown must not keep the next leader from mounting.
-    console.warn("[floating-panel] overlay unmount failed", error);
+    console.warn("[session-watch] overlay unmount failed", error);
   }
   shared.active = leader && { instance: leader, unmount: leader.mount() };
 }

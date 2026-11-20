@@ -21,8 +21,8 @@ declare const localStorage: {
   setItem(key: string, value: string): void;
 };
 
-const ROOT_ID = "paseo-floating-panel-root";
-const PINNED_KEY = "paseo-floating-panel:pinned";
+const ROOT_ID = "paseo-session-watch-root";
+const PINNED_KEY = "paseo-session-watch:pinned";
 
 /** A click-through layer over the whole window, outside Paseo's layout so the sidebar cannot unmount it. */
 export function createOverlayRoot(): {

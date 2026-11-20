@@ -1,4 +1,4 @@
-# paseo-floating-panel
+# paseo-session-watch
 
 A [Paseo](https://paseo.sh) plugin for the desktop app that keeps sessions waiting on you in view.
 
@@ -10,7 +10,7 @@ Both cover every online host that has this plugin installed. A host without the 
 ## Install
 
 ```bash
-paseo plugin install github:kyago/paseo-floating-panel
+paseo plugin install github:kyago/paseo-session-watch
 ```
 
 Requires Paseo 0.16.0 or later. Plugins are trusted, unsandboxed code; read the source before installing.
@@ -27,8 +27,8 @@ Requires Paseo 0.16.0 or later. Plugins are trusted, unsandboxed code; read the 
 npm install
 npm run typecheck
 node --experimental-strip-types client/hosts.check.mjs
-paseo plugin install /absolute/path/to/paseo-floating-panel
-paseo plugin reload paseo-floating-panel
+paseo plugin install /absolute/path/to/paseo-session-watch
+paseo plugin reload session-watch
 ```
 
 How it is put together:

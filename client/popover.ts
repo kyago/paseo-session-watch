@@ -25,7 +25,7 @@ interface Shared {
   listeners: Set<() => void>;
   timer?: ReturnType<typeof setTimeout>;
 }
-const KEY = "__paseoFloatingPanelPopover";
+const KEY = "__paseoSessionWatchPopover";
 const g = globalThis as { [KEY]?: Shared };
 const shared = (g[KEY] ??= {
   state: { anchor: null, hover: false, pinned: loadPinned(), running: 0, needsInput: 0 },

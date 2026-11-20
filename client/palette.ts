@@ -1,7 +1,7 @@
 import { useColorScheme } from "react-native";
 
 /**
- * The floating root sits outside Paseo's tree, so it cannot receive `theme`. Paseo's Unistyles puts the
+ * The overlay root sits outside Paseo's tree, so it cannot receive `theme`. Paseo's Unistyles puts the
  * active theme (built-in or plugin-contributed) on :root as CSS variables, and react-native-web passes
  * `var(...)` colours through, so the panel follows theme changes live. The hex values are fallbacks
  * for a Paseo that stops exposing these variables.
