@@ -4,7 +4,7 @@ import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import { AgentBoard, type BoardItem, PermissionRow, useAgentBoard } from "./agents";
 import { usePalette } from "./palette";
 import { getRow, hoverIn, hoverOut, setPopover, togglePinned, usePopover } from "./popover";
-import { hoverProps, openAgentRoute, trackPointer } from "./web";
+import { composerClearance, hoverProps, openAgentRoute, trackPointer } from "./web";
 import { t } from "./text";
 
 const PANEL = { width: 360, height: 480 };
@@ -12,8 +12,7 @@ const CARD_WIDTH = 340;
 const MAX_CARDS = 3;
 const MIN_WINDOW_WIDTH = 768;
 const GAP = 8;
-// Clears Paseo's window header, whose right end holds its own buttons.
-const CARDS_TOP = 56;
+const EDGE = 16;
 
 const card = (colors: ReturnType<typeof usePalette>) => ({
   borderRadius: 12,
@@ -87,9 +86,10 @@ function SessionPopover({ items }: { items: BoardItem[] }) {
   );
 }
 
-/** One card per session waiting on the user, top-right, until it is answered. */
+/** One card per session waiting on the user, bottom-right above the composer, until it is answered. */
 function ApprovalCards({ items }: { items: BoardItem[] }) {
   const colors = usePalette();
+  const { width } = useWindowDimensions();
   // Requests the user already went to the session for; the card would only cover the session's own prompt.
   const [visited, setVisited] = useState<ReadonlySet<string>>(new Set());
   const requestIds = ({ agent }: BoardItem) =>
@@ -99,9 +99,10 @@ function ApprovalCards({ items }: { items: BoardItem[] }) {
   );
   if (!waiting.length) return null;
   const showHost = new Set(items.map((item) => item.serverId)).size > 1;
+  const bottom = Math.max(EDGE, composerClearance(width - EDGE - CARD_WIDTH) + GAP);
   return (
-    <View style={{ position: "absolute", top: CARDS_TOP, right: 16, width: CARD_WIDTH, gap: GAP }}>
-      {waiting.slice(0, MAX_CARDS).map((item) => {
+    <View style={{ position: "absolute", bottom, right: EDGE, width: CARD_WIDTH, gap: GAP }}>
+      {waiting.slice(0, MAX_CARDS).map((item, index) => {
         const { agent, serverId, host, project } = item;
         return (
         <View
@@ -132,8 +133,14 @@ function ApprovalCards({ items }: { items: BoardItem[] }) {
               {project} · {t("bucketNeedsInput")}
             </Text>
           </Pressable>
-          {agent.pendingPermissions.map((permission) => (
-            <PermissionRow key={permission.id} serverId={serverId} agent={agent} permission={permission} />
+          {agent.pendingPermissions.map((permission, row) => (
+            <PermissionRow
+              key={permission.id}
+              serverId={serverId}
+              agent={agent}
+              permission={permission}
+              shortcuts={index === 0 && row === 0}
+            />
           ))}
         </View>
         );

@@ -1,9 +1,9 @@
 import { getPaseoClient, useHosts } from "@getpaseo/plugin/client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useInstalledHosts } from "./hosts";
 import { type Palette, usePalette } from "./palette";
-import { openAgentRoute } from "./web";
+import { onPermissionShortcut, openAgentRoute } from "./web";
 import { t, type TextKey } from "./text";
 
 type PaseoApi = ReturnType<typeof getPaseoClient>;
@@ -171,10 +171,13 @@ export function PermissionRow({
   serverId,
   agent,
   permission,
+  shortcuts = false,
 }: {
   serverId: string;
   agent: Agent;
   permission: Permission;
+  /** This row answers the keyboard shortcuts: only the first request of the first approval card. */
+  shortcuts?: boolean;
 }) {
   const colors = usePalette();
   const [pending, setPending] = useState(false);
@@ -213,6 +216,25 @@ export function PermissionRow({
       setPending(false);
     }
   };
+  const shortcutChoice = {
+    allow: choices.find((choice) => !choice.danger),
+    deny: choices.find((choice) => choice.danger),
+  };
+  const respondRef = useRef(respond);
+  respondRef.current = respond;
+  const choiceRef = useRef(shortcutChoice);
+  choiceRef.current = shortcutChoice;
+  const pendingRef = useRef(pending);
+  pendingRef.current = pending;
+  useEffect(() => {
+    if (!shortcuts) return;
+    return onPermissionShortcut((kind) => {
+      const choice = choiceRef.current[kind];
+      if (choice && !pendingRef.current) void respondRef.current(choice.response);
+    });
+  }, [shortcuts]);
+  const hint = (choice: (typeof choices)[number]) =>
+    !shortcuts ? "" : choice === shortcutChoice.allow ? " ⌘⇧Y" : choice === shortcutChoice.deny ? " ⌘⇧N" : "";
   return (
     <View
       style={{
@@ -274,6 +296,7 @@ export function PermissionRow({
                 }}
               >
                 {choice.label}
+                {hint(choice)}
               </Text>
             </Pressable>
           ))}

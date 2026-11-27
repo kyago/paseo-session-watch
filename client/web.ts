@@ -15,8 +15,22 @@ declare const document: {
   getElementById(id: string): OverlayElement | null;
   createElement(tag: "div"): OverlayElement;
   body: { appendChild(element: OverlayElement): void };
+  querySelectorAll(selector: "textarea"): ArrayLike<Node>;
 };
+interface ShortcutEvent {
+  code: string;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+  repeat: boolean;
+  preventDefault(): void;
+  stopPropagation(): void;
+}
 declare const window: {
+  innerHeight: number;
+  addEventListener(type: "keydown", listener: (event: ShortcutEvent) => void, capture: boolean): void;
+  removeEventListener(type: "keydown", listener: (event: ShortcutEvent) => void, capture: boolean): void;
   addEventListener(type: "mousemove", listener: (event: { target: unknown }) => void): void;
   removeEventListener(type: "mousemove", listener: (event: { target: unknown }) => void): void;
   history: { pushState(state: null, unused: string, url: string): void };
@@ -115,4 +129,35 @@ export function trackPointer(
   };
   window.addEventListener("mousemove", listener);
   return () => window.removeEventListener("mousemove", listener);
+}
+
+/**
+ * Height to keep clear at the window bottom so cards whose left edge is `left` sit above any visible
+ * composer they would overlap. The textarea's top stands in for the composer box's top.
+ */
+export function composerClearance(left: number): number {
+  if (Platform.OS !== "web") return 0;
+  let clearance = 0;
+  for (const area of Array.from(document.querySelectorAll("textarea"))) {
+    const rect = area.getBoundingClientRect();
+    if (rect.width > 0 && rect.left + rect.width > left && rect.top > window.innerHeight / 2) {
+      clearance = Math.max(clearance, window.innerHeight - rect.top);
+    }
+  }
+  return clearance;
+}
+
+/** Cmd/Ctrl+Shift+Y allows, Cmd/Ctrl+Shift+N denies; both are unbound in Paseo. Captured before the app sees them. */
+export function onPermissionShortcut(handler: (choice: "allow" | "deny") => void): () => void {
+  if (Platform.OS !== "web") return () => {};
+  const listener = (event: ShortcutEvent) => {
+    if (!(event.metaKey || event.ctrlKey) || !event.shiftKey || event.altKey || event.repeat) return;
+    const choice = event.code === "KeyY" ? "allow" : event.code === "KeyN" ? "deny" : null;
+    if (!choice) return;
+    event.preventDefault();
+    event.stopPropagation();
+    handler(choice);
+  };
+  window.addEventListener("keydown", listener, true);
+  return () => window.removeEventListener("keydown", listener, true);
 }
