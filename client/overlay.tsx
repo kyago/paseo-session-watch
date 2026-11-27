@@ -6,8 +6,16 @@ import { usePalette } from "./palette";
 import { getRow, hoverIn, hoverOut, setPopover, togglePinned, usePopover } from "./popover";
 import { composerClearance, hoverProps, openAgentRoute, trackPointer } from "./web";
 import { t } from "./text";
+import {
+  getWorkspaceRow,
+  keepWorkspace,
+  leaveWorkspace,
+  moveWorkspaceAnchor,
+  useWorkspacePopover,
+} from "./workspace-popover";
 
 const PANEL = { width: 360, height: 480 };
+const WORKSPACE_PANEL_HEIGHT = 360;
 const CARD_WIDTH = 340;
 const MAX_CARDS = 3;
 const MIN_WINDOW_WIDTH = 768;
@@ -81,6 +89,65 @@ function SessionPopover({ items }: { items: BoardItem[] }) {
       </View>
       <View style={{ flex: 1 }}>
         <AgentBoard items={items} />
+      </View>
+    </View>
+  );
+}
+
+/** The hovered workspace's sessions, beside the sidebar at the badge's height. */
+function WorkspacePopover({ items }: { items: BoardItem[] }) {
+  const { height } = useWindowDimensions();
+  const colors = usePalette();
+  const { workspace, hover } = useWorkspacePopover();
+  const sessionsRow = usePopover().anchor;
+  const panel = useRef<View>(null);
+  const open = hover && !!workspace;
+  useEffect(() => {
+    if (!open) return;
+    return trackPointer(getWorkspaceRow, () => panel.current, ({ row, inside }) => {
+      moveWorkspaceAnchor(row);
+      if (inside) keepWorkspace();
+      else leaveWorkspace();
+    });
+  }, [open]);
+  if (!open || !workspace) return null;
+  const sessions = items.filter((item) => item.agent.workspaceId === workspace.id);
+  const { anchor } = workspace;
+  // The Sessions row spans the sidebar, so its right edge clears the whole sidebar; the badge alone does not.
+  const left = Math.max(anchor.x + anchor.width, sessionsRow ? sessionsRow.x + sessionsRow.width : 0) + GAP;
+  const panelHeight = Math.min(WORKSPACE_PANEL_HEIGHT, height - GAP * 2);
+  return (
+    <View
+      ref={panel}
+      {...hoverProps(keepWorkspace, leaveWorkspace)}
+      style={[
+        card(colors),
+        {
+          position: "absolute",
+          left,
+          top: Math.max(GAP, Math.min(anchor.y - 12, height - panelHeight - GAP)),
+          width: PANEL.width,
+          height: panelHeight,
+          boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
+        },
+      ]}
+    >
+      <View
+        style={{
+          justifyContent: "center",
+          paddingHorizontal: 12,
+          height: 40,
+          backgroundColor: colors.raised,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+        }}
+      >
+        <Text numberOfLines={1} style={{ color: colors.foreground, fontWeight: "600" }}>
+          {workspace.name || t("sessions")}
+        </Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <AgentBoard items={sessions} />
       </View>
     </View>
   );
@@ -165,6 +232,7 @@ function Content() {
   return (
     <>
       <SessionPopover items={items} />
+      <WorkspacePopover items={items} />
       <ApprovalCards items={items} />
     </>
   );

@@ -234,7 +234,7 @@ export function PermissionRow({
     });
   }, [shortcuts]);
   const hint = (choice: (typeof choices)[number]) =>
-    !shortcuts ? "" : choice === shortcutChoice.allow ? " ⌘⇧Y" : choice === shortcutChoice.deny ? " ⌘⇧N" : "";
+    !shortcuts ? "" : choice === shortcutChoice.allow ? " ⌘⌥Y" : choice === shortcutChoice.deny ? " ⌘⌥N" : "";
   return (
     <View
       style={{

@@ -147,11 +147,14 @@ export function composerClearance(left: number): number {
   return clearance;
 }
 
-/** Cmd/Ctrl+Shift+Y allows, Cmd/Ctrl+Shift+N denies; both are unbound in Paseo. Captured before the app sees them. */
+/**
+ * Cmd/Ctrl+Option/Alt+Y allows, +N denies: unbound in Paseo's app and desktop menu. Not Cmd+Shift: macOS
+ * Stickies takes Cmd+Shift+Y and Paseo's New Window menu Cmd+Shift+N before the page sees them.
+ */
 export function onPermissionShortcut(handler: (choice: "allow" | "deny") => void): () => void {
   if (Platform.OS !== "web") return () => {};
   const listener = (event: ShortcutEvent) => {
-    if (!(event.metaKey || event.ctrlKey) || !event.shiftKey || event.altKey || event.repeat) return;
+    if (!(event.metaKey || event.ctrlKey) || !event.altKey || event.shiftKey || event.repeat) return;
     const choice = event.code === "KeyY" ? "allow" : event.code === "KeyN" ? "deny" : null;
     if (!choice) return;
     event.preventDefault();

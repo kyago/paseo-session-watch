@@ -3,6 +3,7 @@ import { AppRegistry, Platform } from "react-native";
 import { OverlayRoot } from "./client/overlay";
 import { registerHost } from "./client/hosts";
 import { SessionsItem } from "./client/sidebar";
+import { WorkspaceSessionsBadge } from "./client/workspace-badge";
 import { createOverlayRoot } from "./client/web";
 import { hostIdRpc } from "./shared/host";
 import { setI18n, text } from "./client/text";
@@ -31,6 +32,7 @@ export default function contribute(client: PluginClientContext) {
   setI18n(client.i18n);
   let release: (() => void) | null = null;
   let removeItem: (() => void) | null = null;
+  let removeBadge: (() => void) | null = null;
   let stopped = false;
   void client
     .rpc(hostIdRpc, {})
@@ -39,6 +41,13 @@ export default function contribute(client: PluginClientContext) {
       release = registerHost({ serverId, mount });
       // Only once this host is in the list, so the row never shows for a host the list leaves out.
       removeItem = client.addSidebarHeaderItem({ id: "sessions", title: text.message("sessions"), Component: SessionsItem });
+      // Apps older than this API have no addWorkspaceRowBadgeItem.
+      removeBadge = client.addWorkspaceRowBadgeItem?.({
+        id: "sessions",
+        title: text.message("workspaceBadge"),
+        icon: "MessagesSquare",
+        Component: WorkspaceSessionsBadge,
+      }) ?? null;
     })
     .catch((error) =>
       console.warn("[session-watch] could not start on this host; it stays out of the list", error),
@@ -47,5 +56,6 @@ export default function contribute(client: PluginClientContext) {
     stopped = true;
     release?.();
     removeItem?.();
+    removeBadge?.();
   };
 }

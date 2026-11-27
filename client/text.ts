@@ -2,6 +2,8 @@ import { defineTranslations, type PluginI18n } from "@getpaseo/plugin/client";
 
 const en = {
   sessions: "Sessions",
+  workspaceBadge: "Session counts",
+  workspaceSessions: "{{n}} sessions",
   running: "Running {{n}}",
   needsInput: "Needs input {{n}}",
   pin: "Keep open",
@@ -30,6 +32,8 @@ const en = {
 
 const ko: typeof en = {
   sessions: "세션 현황",
+  workspaceBadge: "세션 수",
+  workspaceSessions: "세션 {{n}}개",
   running: "실행 {{n}}",
   needsInput: "응답 {{n}}",
   pin: "항상 표시",
