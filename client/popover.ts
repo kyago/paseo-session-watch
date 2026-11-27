@@ -1,5 +1,4 @@
 import { useSyncExternalStore } from "react";
-import { loadPinned, savePinned } from "./web";
 
 export interface Anchor {
   x: number;
@@ -16,7 +15,6 @@ interface State {
   /** Where the sidebar row is on screen; null while the sidebar is collapsed. */
   anchor: Anchor | null;
   hover: boolean;
-  pinned: boolean;
   running: number;
   needsInput: number;
 }
@@ -30,7 +28,7 @@ interface Shared {
 const KEY = "__paseoSessionWatchPopover";
 const g = globalThis as { [KEY]?: Shared };
 const shared = (g[KEY] ??= {
-  state: { anchor: null, hover: false, pinned: loadPinned(), running: 0, needsInput: 0 },
+  state: { anchor: null, hover: false, running: 0, needsInput: 0 },
   listeners: new Set(),
 });
 
@@ -59,12 +57,6 @@ export function hoverOut(): void {
     shared.timer = undefined;
     setPopover({ hover: false });
   }, 250);
-}
-
-export function togglePinned(): void {
-  const pinned = !shared.state.pinned;
-  savePinned(pinned);
-  setPopover({ pinned });
 }
 
 export const usePopover = (): State =>

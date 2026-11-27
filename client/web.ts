@@ -37,13 +37,8 @@ declare const window: {
   dispatchEvent(event: unknown): void;
 };
 declare const PopStateEvent: new (type: "popstate") => unknown;
-declare const localStorage: {
-  getItem(key: string): string | null;
-  setItem(key: string, value: string): void;
-};
 
 const ROOT_ID = "paseo-session-watch-root";
-const PINNED_KEY = "paseo-session-watch:pinned";
 
 /** A click-through layer over the whole window, outside Paseo's layout so the sidebar cannot unmount it. */
 export function createOverlayRoot(): {
@@ -78,15 +73,6 @@ export function openAgentRoute(
       : `${host}/agent/${encodeURIComponent(agentId)}`;
   window.history.pushState(null, "", route);
   window.dispatchEvent(new PopStateEvent("popstate"));
-}
-
-/** Pinned survives remounts: Paseo can restart the plugin's client entry, e.g. while navigating. */
-export function loadPinned(): boolean {
-  return Platform.OS === "web" && localStorage.getItem(PINNED_KEY) === "1";
-}
-
-export function savePinned(pinned: boolean): void {
-  if (Platform.OS === "web") localStorage.setItem(PINNED_KEY, pinned ? "1" : "0");
 }
 
 /**

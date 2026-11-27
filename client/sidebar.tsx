@@ -2,13 +2,13 @@ import { type PluginSidebarItemProps, useTranslation } from "@getpaseo/plugin/cl
 import { SidebarRow } from "@getpaseo/plugin/client/ui";
 import { useEffect, useRef } from "react";
 import { Text, View } from "react-native";
-import { hoverIn, hoverOut, setPopover, setRow, togglePinned, usePopover } from "./popover";
+import { hoverIn, hoverOut, setPopover, setRow, usePopover } from "./popover";
 import { hoverProps } from "./web";
 import { text } from "./text";
 
-/** One sidebar row with live counts. Hover shows the session list beside it; a click pins it open. */
+/** One sidebar row with live counts. Hovering it, or clicking it, shows the session list beside it. */
 export function SessionsItem({ theme }: PluginSidebarItemProps) {
-  const { running, needsInput, pinned } = usePopover();
+  const { running, needsInput } = usePopover();
   const { t } = useTranslation(text);
   const ref = useRef<View>(null);
   const measure = () =>
@@ -32,12 +32,11 @@ export function SessionsItem({ theme }: PluginSidebarItemProps) {
       }, hoverOut)}
     >
       <SidebarRow
-        icon={pinned ? "Pin" : "Activity"}
+        icon="Activity"
         label={t("sessions")}
-        active={pinned}
         onPress={() => {
           measure();
-          togglePinned();
+          hoverIn();
         }}
         trailing={
           <Text style={{ fontSize: 12, color: theme.colors.foregroundMuted }}>

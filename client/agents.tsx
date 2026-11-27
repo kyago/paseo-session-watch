@@ -373,8 +373,9 @@ export function AgentBoard({ items }: { items: BoardItem[] }) {
   const visible = showDone ? items : active;
   const showHost = new Set(items.map((item) => item.serverId)).size > 1;
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView style={{ flex: 1 }}>
+    // Shrinks to its rows inside a capped popover, scrolling only past the cap.
+    <View style={{ flexShrink: 1 }}>
+      <ScrollView style={{ flexGrow: 0 }}>
         {visible.length ? (
           visible.map((item) => (
             <AgentRow

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import { AgentBoard, type BoardItem, PermissionRow, useAgentBoard } from "./agents";
 import { usePalette } from "./palette";
-import { getRow, hoverIn, hoverOut, setPopover, togglePinned, usePopover } from "./popover";
+import { getRow, hoverIn, hoverOut, setPopover, usePopover } from "./popover";
 import { composerClearance, hoverProps, openAgentRoute, trackPointer } from "./web";
 import { t } from "./text";
 import {
@@ -14,8 +14,10 @@ import {
   useWorkspacePopover,
 } from "./workspace-popover";
 
-const PANEL = { width: 360, height: 480 };
-const WORKSPACE_PANEL_HEIGHT = 360;
+const PANEL = { width: 340, maxHeight: 480 };
+const CARET = 10;
+// Where the caret sits from the panel's top when the panel is free to align with its anchor.
+const CARET_OFFSET = 20;
 const CARD_WIDTH = 340;
 const MAX_CARDS = 3;
 const MIN_WINDOW_WIDTH = 768;
@@ -30,74 +32,120 @@ const card = (colors: ReturnType<typeof usePalette>) => ({
   overflow: "hidden" as const,
 });
 
-/** The session list beside the sidebar row: shown while hovered, or always when pinned. */
-function SessionPopover({ items }: { items: BoardItem[] }) {
+/**
+ * A floating panel beside a sidebar anchor: sized to its content up to a cap, with a caret pointing
+ * at the anchor, so it reads as attached to the row rather than as a window of its own.
+ */
+function PopoverCard({
+  panelRef,
+  anchor,
+  left,
+  title,
+  count,
+  onEnter,
+  onLeave,
+  children,
+}: {
+  panelRef: React.RefObject<View | null>;
+  anchor: { y: number; height: number };
+  left: number;
+  title: string;
+  count: number;
+  onEnter: () => void;
+  onLeave: () => void;
+  children: React.ReactNode;
+}) {
   const { height } = useWindowDimensions();
   const colors = usePalette();
-  const { anchor, hover, pinned } = usePopover();
-  const panel = useRef<View>(null);
-  const tracking = hover || pinned;
-  useEffect(() => {
-    if (!tracking) return;
-    return trackPointer(getRow, () => panel.current, ({ row, inside }) => {
-      // A row that is no longer on screen takes the list with it; it comes back with the row when pinned.
-      setPopover({ anchor: row });
-      if (inside) hoverIn();
-      else hoverOut();
-    });
-  }, [tracking]);
-  if (!anchor || !tracking) return null;
-  const panelHeight = Math.min(PANEL.height, height - GAP * 2);
+  const [panelHeight, setPanelHeight] = useState(0);
+  const maxHeight = Math.min(PANEL.maxHeight, height - GAP * 2);
+  const anchorMid = anchor.y + anchor.height / 2;
+  const top = Math.max(GAP, Math.min(anchorMid - CARET_OFFSET, height - (panelHeight || maxHeight) - GAP));
+  const caretTop = Math.max(CARET, Math.min(anchorMid - top, (panelHeight || maxHeight) - CARET)) - CARET / 2;
   return (
     <View
-      ref={panel}
-      {...hoverProps(hoverIn, hoverOut)}
-      style={[
-        card(colors),
-        {
-          position: "absolute",
-          left: anchor.x + anchor.width + GAP,
-          top: Math.max(GAP, Math.min(anchor.y, height - panelHeight - GAP)),
-          width: PANEL.width,
-          height: panelHeight,
-          boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
-        },
-      ]}
+      ref={panelRef}
+      {...hoverProps(onEnter, onLeave)}
+      onLayout={(event) => setPanelHeight(event.nativeEvent.layout.height)}
+      style={{
+        position: "absolute",
+        left,
+        top,
+        width: PANEL.width,
+        maxHeight,
+        borderRadius: 10,
+        boxShadow: "0 10px 30px rgba(0,0,0,0.28)",
+      }}
     >
       <View
         style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 12,
-          height: 40,
-          backgroundColor: colors.raised,
+          position: "absolute",
+          left: -CARET / 2,
+          top: caretTop,
+          width: CARET,
+          height: CARET,
+          transform: [{ rotate: "45deg" }],
+          backgroundColor: colors.surface,
+          borderLeftWidth: 1,
           borderBottomWidth: 1,
-          borderBottomColor: colors.border,
+          borderColor: colors.border,
         }}
-      >
-        <Text style={{ flex: 1, color: colors.foreground, fontWeight: "600" }}>{t("sessions")}</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t(pinned ? "unpinLabel" : "pinLabel")}
-          onPress={togglePinned}
-          style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}
+      />
+      <View style={[card(colors), { borderRadius: 10, maxHeight, flexShrink: 1 }]}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "baseline",
+            gap: 6,
+            paddingHorizontal: 12,
+            paddingTop: 10,
+            paddingBottom: 8,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+          }}
         >
-          <Text style={{ color: pinned ? colors.accent : colors.muted, fontSize: 12 }}>
-            {t(pinned ? "unpin" : "pin")}
+          <Text numberOfLines={1} style={{ flexShrink: 1, color: colors.foreground, fontSize: 13, fontWeight: "600" }}>
+            {title}
           </Text>
-        </Pressable>
-      </View>
-      <View style={{ flex: 1 }}>
-        <AgentBoard items={items} />
+          <Text style={{ color: colors.muted, fontSize: 12 }}>{count}</Text>
+        </View>
+        {children}
       </View>
     </View>
   );
 }
 
+/** The session list beside the sidebar row, shown while the row or the list is hovered. */
+function SessionPopover({ items }: { items: BoardItem[] }) {
+  const { anchor, hover } = usePopover();
+  const panel = useRef<View>(null);
+  useEffect(() => {
+    if (!hover) return;
+    return trackPointer(getRow, () => panel.current, ({ row, inside }) => {
+      // A row that is no longer on screen takes the list with it.
+      setPopover({ anchor: row });
+      if (inside) hoverIn();
+      else hoverOut();
+    });
+  }, [hover]);
+  if (!anchor || !hover) return null;
+  return (
+    <PopoverCard
+      panelRef={panel}
+      anchor={anchor}
+      left={anchor.x + anchor.width + GAP}
+      title={t("sessions")}
+      count={items.filter((item) => item.bucket !== "done").length}
+      onEnter={hoverIn}
+      onLeave={hoverOut}
+    >
+      <AgentBoard items={items} />
+    </PopoverCard>
+  );
+}
+
 /** The hovered workspace's sessions, beside the sidebar at the badge's height. */
 function WorkspacePopover({ items }: { items: BoardItem[] }) {
-  const { height } = useWindowDimensions();
-  const colors = usePalette();
   const { workspace, hover } = useWorkspacePopover();
   const sessionsRow = usePopover().anchor;
   const panel = useRef<View>(null);
@@ -115,41 +163,18 @@ function WorkspacePopover({ items }: { items: BoardItem[] }) {
   const { anchor } = workspace;
   // The Sessions row spans the sidebar, so its right edge clears the whole sidebar; the badge alone does not.
   const left = Math.max(anchor.x + anchor.width, sessionsRow ? sessionsRow.x + sessionsRow.width : 0) + GAP;
-  const panelHeight = Math.min(WORKSPACE_PANEL_HEIGHT, height - GAP * 2);
   return (
-    <View
-      ref={panel}
-      {...hoverProps(keepWorkspace, leaveWorkspace)}
-      style={[
-        card(colors),
-        {
-          position: "absolute",
-          left,
-          top: Math.max(GAP, Math.min(anchor.y - 12, height - panelHeight - GAP)),
-          width: PANEL.width,
-          height: panelHeight,
-          boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
-        },
-      ]}
+    <PopoverCard
+      panelRef={panel}
+      anchor={anchor}
+      left={left}
+      title={workspace.name || t("sessions")}
+      count={sessions.length}
+      onEnter={keepWorkspace}
+      onLeave={leaveWorkspace}
     >
-      <View
-        style={{
-          justifyContent: "center",
-          paddingHorizontal: 12,
-          height: 40,
-          backgroundColor: colors.raised,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border,
-        }}
-      >
-        <Text numberOfLines={1} style={{ color: colors.foreground, fontWeight: "600" }}>
-          {workspace.name || t("sessions")}
-        </Text>
-      </View>
-      <View style={{ flex: 1 }}>
-        <AgentBoard items={sessions} />
-      </View>
-    </View>
+      <AgentBoard items={sessions} />
+    </PopoverCard>
   );
 }
 
